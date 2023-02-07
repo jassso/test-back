@@ -1,0 +1,141 @@
+/**
+ * 
+ */
+package practicascloud.baselineservice.service;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.modelmapper.ModelMapper;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+
+import practicascloud.baselineservice.dto.InvestmentDTO;
+import practicascloud.baselineservice.dto.InvestmentResponseDTO;
+import practicascloud.baselineservice.dto.YearlyInvestmentDTO;
+import practicascloud.baselineservice.exception.InvalidInvestmentException;
+import practicascloud.baselineservice.model.InvestmentEntity;
+import practicascloud.baselineservice.repository.InvestmentRepository;
+import practicascloud.baselineservice.util.Constants;
+
+/**
+ * @author cjasso
+ *
+ */
+@Service
+public class InvestmentService {
+
+	private InvestmentRepository repository;
+	
+	private ModelMapper modelmapper;
+	
+	/**
+	 * 
+	 */
+	public InvestmentService(InvestmentRepository repo, ModelMapper mapper) {
+		this.repository = repo;
+		this.modelmapper = mapper;
+	}
+	
+	public ResponseEntity<InvestmentResponseDTO> invest(InvestmentDTO investment) {
+		
+		InvestmentResponseDTO response = new InvestmentResponseDTO();
+		try {
+			
+			List<InvestmentEntity> investments = new ArrayList<>();
+			
+			for (int year = 1; year <= investment.getYearsOfInvestment(); year++) {
+				InvestmentEntity yearInvestment = new InvestmentEntity();
+
+				yearInvestment.setYear(year);
+				BigDecimal initialBalance = null;
+				BigDecimal contribution = null;
+				BigDecimal annualContributionFactor = null;
+				BigDecimal currentYearlyInvestmentReturn = new BigDecimal("0");
+				BigDecimal yearFinalBalance = null;
+
+				if (Constants.INVESTMENT_FOR_FIRST_YEAR == year) {
+					
+					initialBalance = investment.getInitialInvestment();
+					contribution = investment.getAnnualContribution();
+					
+				} else {
+					
+					initialBalance = investments.get(year-Constants.INDEX_FOR_LAST_YEAR).getFinalBalance();
+					contribution = 
+							new BigDecimal("" + investments.get(year-Constants.INDEX_FOR_LAST_YEAR).getContribution());
+					annualContributionFactor = new BigDecimal(investment.getAnnualContributionIncreasement());
+					annualContributionFactor = annualContributionFactor.divide(new BigDecimal(100));
+					annualContributionFactor = annualContributionFactor.add(new BigDecimal(1));
+					contribution = contribution.multiply(annualContributionFactor);
+				}
+
+				yearInvestment.setInitialBalance(initialBalance);
+				yearInvestment.setContribution(contribution);
+				
+				currentYearlyInvestmentReturn = getCurrentYearlyInvestmentReturn(initialBalance, contribution, investment.getInvestmentReturn());
+				yearInvestment.setYearlyInvestmentReturn(currentYearlyInvestmentReturn);
+						
+				yearFinalBalance = new BigDecimal("0");
+				yearFinalBalance = yearFinalBalance.add(initialBalance);
+				yearFinalBalance = yearFinalBalance.add(contribution);
+				yearFinalBalance = yearFinalBalance.add(currentYearlyInvestmentReturn);
+				yearInvestment.setFinalBalance(yearFinalBalance);
+				
+				investments.add(yearInvestment);
+			}
+			
+			repository.saveAllAndFlush(investments);
+			
+			BigDecimal finalInvestmentBalance = 
+					new BigDecimal("" + investments.get(investments.size()-1).getFinalBalance());
+			response.setFinalBalance(finalInvestmentBalance);
+			BigDecimal finalSummation = 
+					investments.stream().
+					map(InvestmentEntity::getContribution).
+					reduce(BigDecimal.ZERO, BigDecimal::add);
+			
+			BigDecimal investmentEarnings = finalInvestmentBalance.subtract(investment.getInitialInvestment()).
+					subtract(finalSummation);
+			
+			response.setInvestmentEarnings(investmentEarnings);
+			
+			List<YearlyInvestmentDTO> yearlyInvestmentDTOs = investments.
+					stream().
+					map(inv -> modelmapper.map(inv, YearlyInvestmentDTO.class)).
+					collect(Collectors.toList());
+			
+			response.getInvestments().addAll(yearlyInvestmentDTOs);
+					
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new InvalidInvestmentException();
+		}
+		
+		return new ResponseEntity<>(response, HttpStatus.OK);
+	}
+	
+	/**
+	 * 
+	 * @param initialBalance
+	 * @param contribution
+	 * @param investmentReturn
+	 * @return
+	 */
+	private BigDecimal getCurrentYearlyInvestmentReturn(
+			BigDecimal initialBalance, 
+			BigDecimal contribution, 
+			Integer investmentReturn ) {
+		BigDecimal currentYearlyInvestmentReturn = new BigDecimal("0");
+		currentYearlyInvestmentReturn = currentYearlyInvestmentReturn.add(initialBalance);
+		currentYearlyInvestmentReturn = currentYearlyInvestmentReturn.add(contribution);
+		BigDecimal currentInvestmentReturn = new BigDecimal("" + investmentReturn);
+		currentInvestmentReturn = currentInvestmentReturn.divide(new BigDecimal("100"));
+		currentYearlyInvestmentReturn = currentYearlyInvestmentReturn.multiply(currentInvestmentReturn);
+		return currentYearlyInvestmentReturn;
+	}
+
+}
