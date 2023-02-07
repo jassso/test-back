@@ -12,6 +12,7 @@ public class Constants {
 	public static final Integer INVESTMENT_FOR_FIRST_YEAR = 1; 
 	public static final Integer INDEX_FOR_LAST_YEAR = 2;
 	public static final String BAD_PROVIDED_INVESTMENT_DATA = "No es posible procesar su solicitud con los datos proporcionados"; 
+	public static final String ORIGIN_ALLOWED = "http://localhost:3000";
 
 
 }

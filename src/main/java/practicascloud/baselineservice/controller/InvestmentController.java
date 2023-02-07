@@ -5,6 +5,7 @@ package practicascloud.baselineservice.controller;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import practicascloud.baselineservice.dto.InvestmentDTO;
 import practicascloud.baselineservice.dto.InvestmentResponseDTO;
 import practicascloud.baselineservice.service.InvestmentService;
+import practicascloud.baselineservice.util.Constants;
 
 /**
  * @author cjasso
@@ -21,6 +23,7 @@ import practicascloud.baselineservice.service.InvestmentService;
  */
 @RestController
 @RequestMapping("/Invest")
+@CrossOrigin(origins = {Constants.ORIGIN_ALLOWED})
 public class InvestmentController {
 
 	private InvestmentService investmentService;
@@ -45,6 +48,7 @@ public class InvestmentController {
 	/**
 	 * 
 	 * @param investmentDTO
+	 * Test to validate all is working
 	 * @return
 	 */
 	@GetMapping
