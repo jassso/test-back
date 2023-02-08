@@ -4,6 +4,7 @@
 package practicascloud.baselineservice.service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -73,8 +74,8 @@ public class InvestmentService {
 					contribution = contribution.multiply(annualContributionFactor);
 				}
 
-				yearInvestment.setInitialBalance(initialBalance);
-				yearInvestment.setContribution(contribution);
+				yearInvestment.setInitialBalance(initialBalance.setScale(2, RoundingMode.DOWN));
+				yearInvestment.setContribution(contribution.setScale(2, RoundingMode.DOWN));
 				
 				currentYearlyInvestmentReturn = getCurrentYearlyInvestmentReturn(initialBalance, contribution, investment.getInvestmentReturn());
 				yearInvestment.setYearlyInvestmentReturn(currentYearlyInvestmentReturn);
@@ -83,7 +84,7 @@ public class InvestmentService {
 				yearFinalBalance = yearFinalBalance.add(initialBalance);
 				yearFinalBalance = yearFinalBalance.add(contribution);
 				yearFinalBalance = yearFinalBalance.add(currentYearlyInvestmentReturn);
-				yearInvestment.setFinalBalance(yearFinalBalance);
+				yearInvestment.setFinalBalance(yearFinalBalance.setScale(2, RoundingMode.DOWN));
 				
 				investments.add(yearInvestment);
 			}
@@ -92,7 +93,7 @@ public class InvestmentService {
 			
 			BigDecimal finalInvestmentBalance = 
 					new BigDecimal("" + investments.get(investments.size()-1).getFinalBalance());
-			response.setFinalBalance(finalInvestmentBalance);
+			response.setFinalBalance(finalInvestmentBalance.setScale(2, RoundingMode.DOWN));
 			BigDecimal finalSummation = 
 					investments.stream().
 					map(InvestmentEntity::getContribution).
@@ -101,7 +102,7 @@ public class InvestmentService {
 			BigDecimal investmentEarnings = finalInvestmentBalance.subtract(investment.getInitialInvestment()).
 					subtract(finalSummation);
 			
-			response.setInvestmentEarnings(investmentEarnings);
+			response.setInvestmentEarnings(investmentEarnings.setScale(2, RoundingMode.DOWN));
 			
 			List<YearlyInvestmentDTO> yearlyInvestmentDTOs = investments.
 					stream().
@@ -135,7 +136,7 @@ public class InvestmentService {
 		BigDecimal currentInvestmentReturn = new BigDecimal("" + investmentReturn);
 		currentInvestmentReturn = currentInvestmentReturn.divide(new BigDecimal("100"));
 		currentYearlyInvestmentReturn = currentYearlyInvestmentReturn.multiply(currentInvestmentReturn);
-		return currentYearlyInvestmentReturn;
+		return currentYearlyInvestmentReturn.setScale(2, RoundingMode.DOWN);
 	}
 
 }
