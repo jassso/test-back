@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.modelmapper.ModelMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -32,6 +33,11 @@ public class InvestmentService {
 	private InvestmentRepository repository;
 	
 	private ModelMapper modelmapper;
+	private ObjectMapper mapping = new ObjectMapper();
+
+	private final BigDecimal oneHundred = new BigDecimal(100);
+	private final BigDecimal one = new BigDecimal(1);
+	private final BigDecimal zero =new BigDecimal(0);
 	
 	/**
 	 * 
@@ -47,8 +53,9 @@ public class InvestmentService {
 		try {
 			
 			List<InvestmentEntity> investments = new ArrayList<>();
-			
+
 			for (int year = 1; year <= investment.getYearsOfInvestment(); year++) {
+
 				InvestmentEntity yearInvestment = new InvestmentEntity();
 
 				yearInvestment.setYear(year);
@@ -69,8 +76,9 @@ public class InvestmentService {
 					contribution = 
 							new BigDecimal("" + investments.get(year-Constants.INDEX_FOR_LAST_YEAR).getContribution());
 					annualContributionFactor = new BigDecimal(investment.getAnnualContributionIncreasement());
-					annualContributionFactor = annualContributionFactor.divide(new BigDecimal(100));
-					annualContributionFactor = annualContributionFactor.add(new BigDecimal(1));
+//					annualContributionFactor = annualContributionFactor.divide(new BigDecimal(100));
+					annualContributionFactor = BigDecimal.valueOf(annualContributionFactor.divide(oneHundred, 5, RoundingMode.DOWN).doubleValue());
+					annualContributionFactor = annualContributionFactor.add(one);
 					contribution = contribution.multiply(annualContributionFactor);
 				}
 
@@ -80,15 +88,15 @@ public class InvestmentService {
 				currentYearlyInvestmentReturn = getCurrentYearlyInvestmentReturn(initialBalance, contribution, investment.getInvestmentReturn());
 				yearInvestment.setYearlyInvestmentReturn(currentYearlyInvestmentReturn);
 						
-				yearFinalBalance = new BigDecimal("0");
+				yearFinalBalance = zero;
 				yearFinalBalance = yearFinalBalance.add(initialBalance);
 				yearFinalBalance = yearFinalBalance.add(contribution);
 				yearFinalBalance = yearFinalBalance.add(currentYearlyInvestmentReturn);
 				yearInvestment.setFinalBalance(yearFinalBalance.setScale(2, RoundingMode.DOWN));
-				
+
 				investments.add(yearInvestment);
 			}
-			
+
 			repository.saveAllAndFlush(investments);
 			
 			BigDecimal finalInvestmentBalance = 
@@ -134,7 +142,7 @@ public class InvestmentService {
 		currentYearlyInvestmentReturn = currentYearlyInvestmentReturn.add(initialBalance);
 		currentYearlyInvestmentReturn = currentYearlyInvestmentReturn.add(contribution);
 		BigDecimal currentInvestmentReturn = new BigDecimal("" + investmentReturn);
-		currentInvestmentReturn = currentInvestmentReturn.divide(new BigDecimal("100"));
+		currentInvestmentReturn = BigDecimal.valueOf(currentInvestmentReturn.divide(oneHundred, 5, RoundingMode.DOWN).doubleValue());
 		currentYearlyInvestmentReturn = currentYearlyInvestmentReturn.multiply(currentInvestmentReturn);
 		return currentYearlyInvestmentReturn.setScale(2, RoundingMode.DOWN);
 	}
